@@ -5,6 +5,8 @@ class Matcher {
     constructor(ast, text) {
         this.ast = ast;
         this.text = text;
+        this.captures = {};      // Yakalanan değerler: {name: value}
+        this.captureOrder = [];  // Sıralı yakalama (index için)
     }
     
     match() {
@@ -14,6 +16,8 @@ class Matcher {
         if (this.ast.type === ASTNodeType.ANCHOR) {
             // Start anchor: only try matching from position 0
             if (this.ast.startAnchor) {
+                this.captures = {};
+                this.captureOrder = [];
                 const result = this.matchAt(this.ast, 0);
                 if (result) {
                     results.push({
@@ -28,6 +32,8 @@ class Matcher {
             // Middle anchor: skip position 0 and last position
             if (this.ast.middleAnchor) {
                 for (let i = 1; i < this.text.length - 1; i++) {
+                    this.captures = {};
+                    this.captureOrder = [];
                     const result = this.matchAt(this.ast, i);
                     if (result) {
                         results.push({
@@ -43,6 +49,8 @@ class Matcher {
         
         // Normal matching: try at each position
         for (let i = 0; i < this.text.length; i++) {
+            this.captures = {};
+            this.captureOrder = [];
             const result = this.matchAt(this.ast, i);
             if (result) {
                 results.push({
@@ -72,6 +80,10 @@ class Matcher {
                 return this.matchAnchor(node, startPos);
             case ASTNodeType.CHAR_RANGE:
                 return this.matchCharRange(node, startPos);
+            case ASTNodeType.CAPTURE:
+                return this.matchCapture(node, startPos);
+            case ASTNodeType.BACKREFERENCE:
+                return this.matchBackreference(node, startPos);
             default:
                 throw new Error(`Unknown node type: ${node.type}`);
         }
@@ -305,6 +317,96 @@ class Matcher {
             start: startPos,
             end: pos
         };
+    }
+    
+    matchCapture(node, startPos) {
+        const name = node.name;
+        
+        // Eğer daha önce yakalanmışsa, backreference gibi davran (implicit backreference)
+        if (this.captures[name] !== undefined) {
+            const captured = this.captures[name];
+            const endPos = startPos + captured.length;
+            
+            if (endPos > this.text.length) {
+                return null;
+            }
+            
+            const substring = this.text.substring(startPos, endPos);
+            
+            if (substring === captured) {
+                return {
+                    text: substring,
+                    start: startPos,
+                    end: endPos
+                };
+            }
+            
+            return null;
+        }
+        
+        // İlk yakalama: kelime sınırına kadar yakala (word boundary)
+        let matched = '';
+        let pos = startPos;
+        
+        // Delimiter karakterlere kadar yakala
+        while (pos < this.text.length && !/[\s<>\/\[\]()']/.test(this.text[pos])) {
+            matched += this.text[pos];
+            pos++;
+        }
+        
+        if (matched.length === 0) {
+            return null;
+        }
+        
+        // Kaydet
+        this.captures[name] = matched;
+        this.captureOrder.push(matched);
+        
+        return {
+            text: matched,
+            start: startPos,
+            end: pos
+        };
+    }
+    
+    matchBackreference(node, startPos) {
+        const ref = node.reference;
+        let captured;
+        
+        if (node.isIndex) {
+            // Index ile: [rp=1]
+            const index = ref - 1; // 1-based to 0-based
+            captured = this.captureOrder[index];
+            
+            if (captured === undefined) {
+                throw new Error(`Backreference [rp=${ref}] points to non-existent capture`);
+            }
+        } else {
+            // İsim ile: [rp=name]
+            captured = this.captures[ref];
+            
+            if (captured === undefined) {
+                throw new Error(`Backreference [rp=${ref}] points to undefined capture: ${ref}`);
+            }
+        }
+        
+        const endPos = startPos + captured.length;
+        
+        if (endPos > this.text.length) {
+            return null;
+        }
+        
+        const substring = this.text.substring(startPos, endPos);
+        
+        if (substring === captured) {
+            return {
+                text: substring,
+                start: startPos,
+                end: endPos
+            };
+        }
+        
+        return null;
     }
     
     isCharInRanges(char, ranges) {

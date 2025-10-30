@@ -23,6 +23,8 @@ const TokenType = {
     // Grouping
     LPAREN: 'LPAREN',                 // (
     RPAREN: 'RPAREN',                 // )
+    LBRACKET: 'LBRACKET',             // [
+    RBRACKET: 'RBRACKET',             // ]
     
     // Alternation
     PIPE: 'PIPE',                     // |
@@ -36,10 +38,14 @@ const TokenType = {
     DASH: 'DASH',                     // -
     GT: 'GT',                         // >
     LT: 'LT',                         // <
+    EQUALS: 'EQUALS',                 // =
     
     // Anchors
     START_ANCHOR: 'START_ANCHOR',     // <<
     END_ANCHOR: 'END_ANCHOR',         // >>
+    
+    // Identifiers
+    IDENTIFIER: 'IDENTIFIER',         // variable names
     
     // Special
     EOF: 'EOF'
@@ -219,6 +225,54 @@ function tokenize(pattern) {
             tokens.push(new Token(TokenType.LITERAL, text, startPos));
             continue;
         }
+        
+        // Köşeli parantez: [name], [rp=1], [name:pattern]
+        if (char === '[') {
+            tokens.push(new Token(TokenType.LBRACKET, '[', startPos));
+            i++;
+            
+            // İçeriği oku (identifier veya rp=...)
+            let content = '';
+            while (i < pattern.length && pattern[i] !== ']' && pattern[i] !== '=' && pattern[i] !== ':') {
+                content += pattern[i];
+                i++;
+            }
+            
+            if (content.length > 0) {
+                tokens.push(new Token(TokenType.IDENTIFIER, content, startPos));
+            }
+            
+            // = varsa ekle
+            if (i < pattern.length && pattern[i] === '=') {
+                tokens.push(new Token(TokenType.EQUALS, '=', startPos));
+                i++;
+                
+                // = sonrası değer (number veya identifier)
+                let value = '';
+                while (i < pattern.length && pattern[i] !== ']') {
+                    value += pattern[i];
+                    i++;
+                }
+                
+                if (/^\d+$/.test(value)) {
+                    tokens.push(new Token(TokenType.NUMBER, parseInt(value), startPos));
+                } else {
+                    tokens.push(new Token(TokenType.IDENTIFIER, value, startPos));
+                }
+            }
+            
+            // TODO: : ile pattern capture ([name:pattern]) gelecekte eklenecek
+            
+            if (i >= pattern.length || pattern[i] !== ']') {
+                throw new Error(`Unclosed bracket at position ${startPos}`);
+            }
+            
+            tokens.push(new Token(TokenType.RBRACKET, ']', startPos));
+            i++;
+            continue;
+        }
+        
+        // Equals: = (tek başına kullanılmaz, bracket içinde parse edilir)
         
         // Unknown character
         throw new Error(`Unknown character '${char}' at position ${i}`);

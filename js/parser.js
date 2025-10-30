@@ -9,7 +9,9 @@ const ASTNodeType = {
     ALTERNATION: 'ALTERNATION',
     SCOPE: 'SCOPE',
     ANCHOR: 'ANCHOR',
-    CHAR_RANGE: 'CHAR_RANGE'
+    CHAR_RANGE: 'CHAR_RANGE',
+    CAPTURE: 'CAPTURE',
+    BACKREFERENCE: 'BACKREFERENCE'
 };
 
 class Parser {
@@ -111,6 +113,11 @@ class Parser {
     
     parseElement() {
         const token = this.peek();
+        
+        // Backreference/Capture: [name] veya [rp=1]
+        if (token.type === TokenType.LBRACKET) {
+            return this.parseCapture();
+        }
         
         // Scope
         if (token.type === TokenType.SCOPE) {
@@ -368,6 +375,39 @@ class Parser {
             type: ASTNodeType.CHAR_CLASS,
             class: charClass,
             count: quantifier
+        };
+    }
+    
+    parseCapture() {
+        this.expect(TokenType.LBRACKET);
+        
+        const nameToken = this.peek();
+        
+        if (nameToken.type !== TokenType.IDENTIFIER) {
+            throw new Error(`Expected identifier in bracket, got: ${nameToken.type}`);
+        }
+        
+        const name = this.advance().value;
+        
+        // Backreference: [rp=N] veya [rp=name]
+        if (name === 'rp') {
+            this.expect(TokenType.EQUALS);
+            const refToken = this.advance();
+            this.expect(TokenType.RBRACKET);
+            
+            return {
+                type: ASTNodeType.BACKREFERENCE,
+                reference: refToken.value,
+                isIndex: refToken.type === TokenType.NUMBER
+            };
+        }
+        
+        // Simple capture: [name]
+        this.expect(TokenType.RBRACKET);
+        
+        return {
+            type: ASTNodeType.CAPTURE,
+            name: name
         };
     }
     

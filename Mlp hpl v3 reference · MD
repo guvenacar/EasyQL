@@ -1,658 +1,1164 @@
-# 🚀 MLP HPL v3 - Reference Document
+# MLP HPL v3 - Complete Documentation
+## Multi-Language Programming - Human Pattern Language
 
-**MLP** = Multi-Language Programming  
-**HPL** = Human Pattern Language  
-**Version:** 3.0 (Development)
-
-**Date:** 2025-10-29  
-**Status:** 🟡 In Development
+**Version:** 3.0  
+**Author:** Human Pattern Language Initiative  
+**Last Updated:** 2025
 
 ---
 
-## 📋 **TABLE OF CONTENTS**
+## Table of Contents
 
-1. [Core Philosophy](#core-philosophy)
-2. [Character Classes](#character-classes)
-3. [Quantifiers](#quantifiers)
-4. [Literals](#literals)
-5. [Alternation](#alternation)
-6. [Scope](#scope)
-7. [Block Selector](#block-selector)
-8. [Positional](#positional)
-9. [Lookahead/Lookbehind](#lookaheadlookbehind)
-10. [Parameters](#parameters)
-11. [Negation](#negation)
-12. [Special Formats](#special-formats)
-13. [Escape Characters](#escape-characters)
-14. [Examples](#examples)
-15. [Implementation Notes](#implementation-notes)
-
----
-
-## 🎯 **CORE PHILOSOPHY**
-
-### **Design Principles:**
-
-1. ✅ **Human-Readable** - Patterns should be readable like natural language
-2. ✅ **No Backtracking** - Deterministic matching (fast & safe)
-3. ✅ **Multi-Language** - Support for language-specific patterns (Turkish: sesli/sessiz)
-4. ✅ **Predictable** - Same pattern = same result (always)
-5. ✅ **Safe** - No ReDoS vulnerability
-
-### **vs Classic Regex:**
-
-| Feature | Classic Regex | MLP HPL v3 |
-|---------|--------------|------------|
-| Syntax | `[a-z]{3}\d{2}` | `l3r2` |
-| Readability | ⭐⭐ | ⭐⭐⭐⭐⭐ |
-| Performance | ⭐⭐ (backtracking) | ⭐⭐⭐⭐⭐ (deterministic) |
-| Security | ❌ ReDoS risk | ✅ Safe |
-| Learning Curve | 🔴 Hard | 🟢 Easy |
+1. [Introduction](#introduction)
+2. [Language Philosophy](#language-philosophy)
+3. [Core Concepts](#core-concepts)
+4. [Syntax Reference](#syntax-reference)
+5. [Character Classes](#character-classes)
+6. [Quantifiers](#quantifiers)
+7. [Character Ranges](#character-ranges)
+8. [Literals](#literals)
+9. [Alternation](#alternation)
+10. [Anchors](#anchors)
+11. [Scope Modifiers](#scope-modifiers)
+12. [Pattern Examples](#pattern-examples)
+13. [Implementation Details](#implementation-details)
+14. [Best Practices](#best-practices)
+15. [Comparison with Regular Expressions](#comparison-with-regular-expressions)
 
 ---
 
-## 🔤 **CHARACTER CLASSES**
+## Introduction
 
-### **Basic Classes:**
+MLP HPL v3 (Multi-Language Programming - Human Pattern Language) is a pattern matching language designed to be more intuitive and human-readable than traditional regular expressions. It emphasizes clarity, simplicity, and cross-linguistic compatibility.
+
+### Key Features
+
+- **Human-Readable Syntax**: Uses intuitive single-character codes instead of cryptic regex symbols
+- **Multilingual Support**: Handles Turkish characters (ğ, ş, ı, etc.) and other Unicode characters
+- **Flexible Quantifiers**: Multiple ways to specify repetition with natural syntax
+- **Range Support**: Easy character range definitions
+- **Anchoring System**: Intuitive position-based matching
+
+---
+
+## Language Philosophy
+
+### Design Principles
+
+1. **Readability First**: Every pattern should be immediately understandable
+2. **Consistent Syntax**: Similar operations use similar syntax
+3. **Error Prevention**: The language guides users toward correct patterns
+4. **Minimal Memorization**: Small set of rules covers most use cases
+5. **Progressive Disclosure**: Simple patterns are simple; complex patterns remain possible
+
+### Why Not Regex?
+
+Traditional regular expressions, while powerful, suffer from:
+- Cryptic syntax (`\w+`, `[a-zA-Z]{3,5}`, `(?:...)`)
+- Escape character overload
+- Different flavors across languages
+- Difficult to read and maintain
+
+HPL addresses these issues with a cleaner, more intuitive approach.
+
+---
+
+## Core Concepts
+
+### Pattern Structure
+
+A pattern in HPL consists of:
+1. **Elements**: Character classes, literals, or groups
+2. **Quantifiers**: Specify how many times an element repeats
+3. **Modifiers**: Anchors, scopes, and alternations
+
+### Basic Pattern Format
+
+```
+[anchor] element[quantifier] [element[quantifier]]... [anchor]
+```
+
+**Example:**
+```
+l3r2    → 3 lowercase letters followed by 2 digits
+<<l3    → 3 lowercase letters at the start
+l(2-4)  → 2 to 4 lowercase letters
+```
+
+---
+
+## Syntax Reference
+
+### Complete Symbol Table
 
 | Symbol | Name | Description | Example |
 |--------|------|-------------|---------|
-| `l` | lowercase | Küçük harf (a-z, çğıöşü) | `l3` = 3 küçük harf |
-| `L` | uppercase | Büyük harf (A-Z, ÇĞİÖŞÜ) | `L2` = 2 büyük harf |
-| `r` | digit | Rakam (0-9) | `r4` = 4 rakam |
-| `h` | letter | Harf (büyük/küçük) | `h5` = 5 harf |
-| `v` | vowel | Sesli harf (a,e,i,o,u,ö,ü) | `v2` = 2 sesli |
-| `s` | consonant | Sessiz harf | `s3` = 3 sessiz |
-| `x` | symbol | Sembol (!@#$%^&*) | `x1` = 1 sembol |
-| `?` | wildcard | Herhangi bir karakter | `?3` = 3 herhangi |
-| `a` | unlimited | Sınırsız (any length) | `a` = tümü |
-| `b` | single | Tek karakter | `b` = 1 karakter |
+| `l` | lowercase | Any lowercase letter | `l3` = abc |
+| `L` | UPPERCASE | Any uppercase letter | `L2` = AB |
+| `r` | digit | Any digit (0-9) | `r4` = 1234 |
+| `h` | letter | Any letter (upper or lower) | `h5` = AbCdE |
+| `v` | vowel | Any vowel | `v2` = ae |
+| `s` | consonant | Any consonant | `s3` = bcd |
+| `x` | symbol | Any symbol/punctuation | `x2` = !@ |
+| `?` | wildcard | Any character | `?5` = ab12! |
+| `a` | unlimited | Any amount of any char | `a` = anything |
+| `b` | single | Exactly one of any char | `b` = x |
+| `'...'` | literal | Exact text | `'hello'` |
+| `( )` | group | Grouping for alternation/ranges | `(cat\|dog)` |
+| `\|` | alternation | OR operator | `(yes\|no)` |
+| `<<` | start anchor | Must start at beginning | `<<l3` |
+| `>>` | end anchor | Must end at text end | `r2>>` |
+| `>>...<<` | middle anchor | Must be in middle (not edges) | `>>l3<<` |
+| `(x-y)` | range | Character range | `(a-z)`, `(0-9)` |
+| `w:` | word scope | Within word boundary | `w:l3` |
+| `l:` | line scope | Within line | `l:pattern` |
+| `d:` | document scope | Full document | `d:pattern` |
+| `b:` | block scope | Within block | `b:pattern` |
 
-### **Examples:**
+---
 
+## Character Classes
+
+Character classes match specific types of characters.
+
+### Lowercase: `l`
+
+Matches any lowercase letter, including Turkish characters.
+
+**Matches:**
+- a-z (English lowercase)
+- ç, ğ, ı, ö, ş, ü (Turkish lowercase)
+
+**Examples:**
 ```
-l3      → "abc"     ✅
-L2      → "AB"      ✅
-r4      → "1234"    ✅
-h6      → "AbCdEf"  ✅
-v2s2    → "abcd"    ✅ (a=sesli, b=sessiz, c=sessiz, d=sessiz... HATA!)
-vsv     → "aba"     ✅ (a=sesli, b=sessiz, a=sesli)
+l      → a, b, c, ş, ğ
+l3     → abc, xyz, şğü
+l5     → hello, dünya
+```
+
+### Uppercase: `L`
+
+Matches any uppercase letter, including Turkish characters.
+
+**Matches:**
+- A-Z (English uppercase)
+- Ç, Ğ, İ, Ö, Ş, Ü (Turkish uppercase)
+
+**Examples:**
+```
+L      → A, B, C, Ş, Ğ
+L3     → ABC, XYZ, ŞĞÜ
+L5     → HELLO, DÜNYA
+```
+
+### Digit: `r`
+
+Matches any numeric digit.
+
+**Matches:** 0-9
+
+**Examples:**
+```
+r      → 5
+r3     → 123, 789
+r4     → 2025
+```
+
+**Note:** The symbol `r` was chosen because `d` is reserved for "document scope."
+
+### Letter: `h`
+
+Matches any letter (uppercase or lowercase).
+
+**Matches:**
+- All lowercase letters (l)
+- All uppercase letters (L)
+
+**Examples:**
+```
+h      → a, B, ş, Ğ
+h3     → aBc, XyZ, Şğü
+h5     → HeLLo, DüNyA
+```
+
+### Vowel: `v`
+
+Matches any vowel in English or Turkish.
+
+**Matches:**
+- English: a, e, i, o, u, A, E, I, O, U
+- Turkish: ö, ü, Ö, Ü
+
+**Examples:**
+```
+v      → a, e, ö
+v3     → aei, oöü
+v2     → ae, öü
+```
+
+### Consonant: `s`
+
+Matches any consonant in English or Turkish.
+
+**Matches:**
+- English: b, c, d, f, g, h, j, k, l, m, n, p, q, r, s, t, v, w, x, y, z
+- Turkish: ç, ğ, ş, Ç, Ğ, Ş
+
+**Examples:**
+```
+s      → b, k, ş
+s3     → str, çğş
+s5     → crypt
+```
+
+### Symbol: `x`
+
+Matches any punctuation or special character.
+
+**Matches:**
+```
+! @ # $ % ^ & * ( ) _ + - = [ ] { } ; ' : " \ | , . < > / ?
+```
+
+**Examples:**
+```
+x      → @, #, !
+x3     → @#$, !?!
+x2     → .:
+```
+
+### Wildcard: `?`
+
+Matches any single character (including spaces, symbols, letters, digits).
+
+**Examples:**
+```
+?      → a, 5, @, (space)
+?3     → a5@, xyz,   3
+?5     → hello, 12!ab
+```
+
+### Unlimited: `a`
+
+Matches any number of any characters (including zero characters). Similar to `.*` in regex.
+
+**Examples:**
+```
+a      → (empty), hello, 123!@#
+'start'a'end'  → start...anything...end
+```
+
+### Single: `b`
+
+Matches exactly one character of any type (like `?` but emphasizes "single").
+
+**Examples:**
+```
+b      → x, 5, @
+b3     → abc, 1@x
 ```
 
 ---
 
-## 🔢 **QUANTIFIERS**
+## Quantifiers
 
-### **Syntax:**
+Quantifiers specify how many times a character class should repeat.
 
-| Format | Description | Example |
-|--------|-------------|---------|
-| `l3` | Exactly 3 | `l3` = tam 3 küçük harf |
-| `l(2-4)` | Range (2 to 4) | `l(2-4)` = 2-4 arası |
-| `l(>3)` | Min 3 | `l(>3)` = en az 3 |
-| `l(<5)` | Max 5 | `l(<5)` = en fazla 5 |
-| `a` | Unlimited | `a` = sınırsız |
+### Exact Count: `class + number`
 
-### **Greedy vs Lazy:**
+Match exactly N occurrences.
 
-**Default: Greedy** (en uzununu al)
+**Syntax:** `l3`, `r5`, `h10`
 
+**Examples:**
 ```
-l(2-4)  + "abcde"  →  "abcd" (4 karakter alır)
+l3     → abc, xyz (exactly 3 lowercase)
+r2     → 12, 99 (exactly 2 digits)
+L4     → ABCD (exactly 4 uppercase)
 ```
 
-**Lazy mode:** Scope ile kontrol edilir
+### Range: `class(min-max)`
 
-```
-w:l(2-4)  →  word scope (kelime sınırında dur)
-```
+Match between min and max occurrences (inclusive).
 
-### **Examples:**
+**Syntax:** `l(2-4)`, `r(1-3)`
 
+**Examples:**
 ```
-l(2-4)      → "abc"     ✅ (3 karakter)
-l(2-4)      → "ab"      ✅ (2 karakter, minimum)
-l(2-4)      → "abcde"   ✅ "abcd" (4 karakter, maksimum)
-r(3-6)      → "12345"   ✅ (5 rakam)
+l(2-4)    → ab, abc, abcd (2 to 4 lowercase)
+r(1-3)    → 1, 12, 123 (1 to 3 digits)
+h(5-10)   → hello, JavaScript (5 to 10 letters)
 ```
 
----
+### Greater Than: `class(>N)`
 
-## 📝 **LITERALS**
+Match MORE than N occurrences (strictly greater).
 
-### **Syntax:**
+**Syntax:** `l(>3)`, `r(>5)`
 
+**Examples:**
 ```
-'text'      → Exact text
-"text"      → NOT SUPPORTED (use single quotes)
-```
-
-### **Behavior:**
-
-```
-'hello'     → Exact "hello" (başka şey yok)
-a'hello'    → Ends with "hello"
-'hello'a    → Starts with "hello"
-a'hello'a   → Contains "hello"
+l(>3)     → abcd, abcde, ... (4+ lowercase)
+r(>2)     → 123, 1234, ... (3+ digits)
 ```
 
-### **Escaping:**
+**Note:** `(>3)` means "more than 3", so minimum is 4.
 
+### Less Than: `class(<N)`
+
+Match LESS than N occurrences (strictly less).
+
+**Syntax:** `l(<5)`, `r(<3)`
+
+**Examples:**
 ```
-'it\'s'     → Literal "it's" (escape single quote)
-'"test"'    → Literal "test" with double quotes
+l(<5)     → a, ab, abc, abcd (0 to 4 lowercase)
+r(<3)     → 1, 12 (0 to 2 digits)
 ```
 
-### **Examples:**
+**Note:** `(<5)` means "less than 5", so maximum is 4.
 
+### No Quantifier (Implicit 1)
+
+If no quantifier is specified, exactly 1 is assumed.
+
+**Examples:**
 ```
-'hello'             → "hello"        ✅
-'hello'             → "Hello"        ❌ (case-sensitive)
-'test'r2            → "test99"       ✅
-l3'@'l3             → "abc@xyz"      ✅
-a'end'              → "start...end"  ✅
+l     → a (exactly 1 lowercase)
+r     → 5 (exactly 1 digit)
 ```
 
 ---
 
-## 🔀 **ALTERNATION**
+## Character Ranges
 
-### **Syntax:**
+Character ranges allow matching specific character sets.
 
+### Basic Range Syntax: `(start-end)`
+
+**Examples:**
 ```
-(option1|option2|option3)
-```
-
-### **Longest Match:**
-
-Always matches the longest option first (no backtracking)
-
-```
-(cat|catch)  +  "catch"  →  "catch" (not "cat")
-```
-
-### **Optional:**
-
-```
-(x|)    → x is optional (empty alternative)
+(a-z)     → Any lowercase letter a through z
+(A-Z)     → Any uppercase letter A through Z
+(0-9)     → Any digit 0 through 9
+(a-f)     → Hex lowercase (a, b, c, d, e, f)
+(A-F)     → Hex uppercase (A, B, C, D, E, F)
 ```
 
-### **Examples:**
+### Multiple Ranges: `(range1,range2,...)`
 
+Combine multiple ranges with commas.
+
+**Examples:**
 ```
-(cat|dog)           → "cat"     ✅
-(cat|dog)           → "dog"     ✅
-l3(r|v)             → "abc1"    ✅ (1=rakam)
-l3(r|v)             → "abca"    ✅ (a=sesli)
-(com|net|org)       → "com"     ✅
-(test|testing)      → "testing" ✅ (longest)
-```
-
----
-
-## 🎯 **SCOPE**
-
-### **Syntax:**
-
-```
-w:pattern   → Word scope
-l:pattern   → Line scope
-d:pattern   → Document scope
-b:pattern   → Block scope (custom)
+(a-z,A-Z)      → Any letter (upper or lower)
+(0-9,a-f)      → Hex digit (0-9 or a-f)
+(a-d,g-l,x-z)  → Multiple separate ranges
 ```
 
-### **Word Scope (w:):**
+### Ranges with Quantifiers
 
-Matches within word boundaries
-
+**Examples:**
 ```
-w:l3r2  +  "hello abc12 world"  →  "abc12"
-```
-
-### **Line Scope (l:):**
-
-Matches within line boundaries (stops at \n)
-
-```
-l:a'end'  +  "start end\nnext"  →  "start end"
+(a-z)3         → Exactly 3 lowercase letters
+(0-9)4         → Exactly 4 digits (like r4)
+(a-f)(2-4)     → 2 to 4 hex letters
+(0-9,a-f)6     → 6 hex characters
 ```
 
-### **Document Scope (d:):**
-
-Matches entire document
+### Common Range Patterns
 
 ```
-d:a'end'  +  "start\nmiddle\nend"  →  entire text
-```
-
-### **Examples:**
-
-```
-w:'test'        → Exact word "test"
-l:a'end'        → Line ending with "end"
-d:a'keyword'a   → Document containing "keyword"
+(a-z)          → Lowercase alphabet
+(A-Z)          → Uppercase alphabet
+(0-9)          → Digits (same as 'r')
+(a-z,A-Z)      → All letters (same as 'h')
+(0-9,a-f)      → Hexadecimal lowercase
+(0-9,a-f,A-F)  → Hexadecimal any case
 ```
 
 ---
 
-## 🧱 **BLOCK SELECTOR** ⭐ NEW!
+## Literals
 
-### **Syntax:**
+Literals match exact text strings.
 
+### Quoted Literals: `'text'`
+
+Use single quotes for exact text matching.
+
+**Examples:**
 ```
-b(start, end):pattern
-b(start, end(n)):pattern    → Select nth occurrence
-```
-
-### **Basic Usage:**
-
-```
-b('<div>', '</div>'):a
-```
-
-Selects content between `<div>` and `</div>`
-
-### **⭐ NEW: Occurrence Selector**
-
-```
-b('<div>', '</div>(3)'):a
+'hello'        → Matches "hello" exactly
+'Hello World'  → Matches "Hello World" exactly
+'123'          → Matches "123" as text (not as number)
+'@#$'          → Matches "@#$" exactly
 ```
 
-**Behavior:**
-- Starts at `<div>`
-- Stops at the **3rd** occurrence of `</div>`
-- Useful for nested blocks!
+### Implicit Literals (Bare Text)
 
-### **Examples:**
+Inside alternations, bare text is treated as a literal.
 
-```html
-<!-- HTML: -->
-<div>
-    <div>inner1</div>
-    <div>inner2</div>
-    <div>inner3</div>
-</div>
-
-<!-- Pattern: -->
-b('<div>', '</div>(1)'):a
-→ Selects: <div> ... </div>  (first closing tag only: "inner1")
-
-b('<div>', '</div>(3)'):a
-→ Selects: <div> ... </div>  (third closing tag: includes inner1, inner2, inner3)
-
-b('<div>', '</div>'):a
-→ Selects: entire block (default: greedy, last closing tag)
+**Examples:**
+```
+(cat|dog)      → Matches "cat" OR "dog"
+(yes|no)       → Matches "yes" OR "no"
+(red|green|blue) → Matches color names
 ```
 
-### **Use Cases:**
+### Escape Sequences in Literals
 
+Use backslash to escape special characters inside quotes.
+
+**Examples:**
 ```
-<!-- XML/HTML parsing -->
-b('<article>', '</article>'):a
-b('<p>', '</p>(1)'):a          → First paragraph only
-
-<!-- Code blocks -->
-b('function', 'end'):a
-b('{', '}(1)'):a               → First block only
-
-<!-- Nested structures -->
-b('(', ')(2)'):a               → Up to 2nd closing paren
+'can\'t'       → Matches "can't"
+'say "hello"'  → Matches 'say "hello"'
 ```
 
-### **Implementation Notes:**
+### Combining Literals with Classes
 
-- Default (no number): Greedy, match to last occurrence
-- `(n)`: Match to nth occurrence
-- Counter resets for each new start tag
-- Useful for nested/recursive structures
-
----
-
-## 📍 **POSITIONAL**
-
-### **Syntax:**
-
+**Examples:**
 ```
-<<pattern   → Start of scope
-pattern>>   → End of scope
-><pattern   → Middle of scope
-```
-
-### **Examples:**
-
-```
-<<l3        → Starts with 3 lowercase
-r2>>        → Ends with 2 digits
-><'test'    → Contains "test" (not at edges)
-```
-
-### **With Scope:**
-
-```
-w:<<L       → Word starts with uppercase
-l:r2>>      → Line ends with 2 digits
+'user'r3           → "user" followed by 3 digits (user123)
+'id_'(a-z)2'_'r4   → "id_" + 2 letters + "_" + 4 digits (id_ab_1234)
+L3'@'l3'.com'      → 3 uppercase + "@" + 3 lowercase + ".com" (ABC@xyz.com)
 ```
 
 ---
 
-## 👀 **LOOKAHEAD/LOOKBEHIND**
+## Alternation
 
-### **Syntax:**
+Alternation allows matching one of several alternatives.
 
+### Basic Alternation: `(option1|option2|...)`
+
+**Syntax:** Use parentheses and pipe `|` to separate alternatives.
+
+**Examples:**
 ```
-@>pattern   → Lookahead (next is pattern)
-@<pattern   → Lookbehind (previous is pattern)
-!@>pattern  → Negative lookahead
-!@<pattern  → Negative lookbehind
-```
-
-### **Behavior:**
-
-**Lookahead/lookbehind does NOT consume characters!**
-
-```
-l3@>r       → 3 lowercase + next is digit (digit NOT captured)
+(cat|dog)          → Matches "cat" OR "dog"
+(yes|no|maybe)     → Matches "yes", "no", or "maybe"
+(Mr|Ms|Mrs|Dr)     → Matches titles
 ```
 
-### **Examples:**
+### Alternation with Character Classes
 
+**Examples:**
 ```
-l3@>r               → "abc1"  →  Matches "abc" (1 not included)
-r@<l3               → "abc1"  →  Matches "1" (abc not included)
-'test'!@>r          → "testx" →  Matches "test" (next NOT digit)
-l3@>r2              → "abc12" →  Matches "abc"
-```
-
-### **Use Cases:**
-
-```
-<!-- Password validation: must have digit after letters -->
-l(5-10)@>r
-
-<!-- Email: ensure @ follows -->
-l(3-10)@>'@'
-
-<!-- Avoid certain patterns -->
-'keyword'!@>'bad'
+(l3|r3)            → 3 lowercase OR 3 digits
+(L2r2|r2L2)        → 2 uppercase + 2 digits OR 2 digits + 2 uppercase
+('hello'|'hi')     → "hello" OR "hi"
 ```
 
----
+### Nested Patterns in Alternation
 
-## 🏷️ **PARAMETERS**
-
-### **Syntax:**
-
+**Examples:**
 ```
-[name]          → Define parameter
-[name=default]  → With default value
-[1], [2]        → Reference by index
+(l(2-4)|r(3-5))    → 2-4 lowercase OR 3-5 digits
+('user'r2|'admin') → "user" + 2 digits OR "admin"
 ```
 
-### **Usage:**
+### Longest Match Priority
 
-```
-[domain]'.'(com|net|org)
-```
-
-### **Examples:**
-
-```
-[user]'@'[domain]'.com'
-→ Captures: user and domain
-
-'http'[1]'.com'
-→ Reference first capture
-```
-
-### **Status:** ⏳ Not implemented yet
-
----
-
-## ⛔ **NEGATION**
-
-### **Syntax:**
-
-```
-(-pattern)      → NOT pattern
-(-'text')       → NOT exact text
-```
-
-### **Examples:**
-
-```
-(-'cat')a       → Any text except "cat"
-(-r)3           → 3 non-digits
-```
-
-### **Status:** ⏳ Not implemented yet
-
----
-
-## 🔧 **SPECIAL FORMATS**
-
-### **Syntax:**
-
-```
-bin     → Binary (0,1)
-hex     → Hexadecimal (0-9,a-f,A-F)
-asc     → ASCII (0-127)
-```
-
-### **Examples:**
-
-```
-bin8        → "10110101" (8-bit binary)
-hex6        → "ff5733" (hex color)
-asc10       → ASCII text (10 chars)
-```
-
-### **Status:** ⏳ Not implemented yet
-
----
-
-## 🔤 **ESCAPE CHARACTERS**
-
-### **Syntax:**
-
-```
-\n      → Newline
-\t      → Tab
-\r      → Carriage return
-\s      → Space
-```
-
-### **Examples:**
-
-```
-l3\nr2          → "abc\n12"
-'hello'\t'world' → "hello\tworld"
-```
-
-### **Status:** ⏳ Partially implemented
-
----
-
-## 📚 **EXAMPLES**
-
-### **Email Validation:**
-
-```
-l(3-10)'@'l(3-10)'.'(com|net|org)
-
-test@example.com    ✅
-ab@ex.com           ❌ (too short)
-test@site.co.uk     ❌ (.uk not in list)
-```
-
-### **Phone Number (TR):**
-
-```
-'0'r10
-
-05551234567     ✅
-5551234567      ❌ (no leading 0)
-055512345       ❌ (too short)
-```
-
-### **Password Strength:**
-
-```
-L(1-2)l(5-8)r(2-3)
-
-Abcdefg123      ✅ (1 upper, 7 lower, 3 digits)
-abcdefg123      ❌ (no uppercase)
-ABC123          ❌ (not enough lowercase)
-```
-
-### **Hex Color:**
-
-```
-'#'h6
-
-#ff5733     ✅
-#FF5733     ✅
-#zz5733     ❌ (z not hex)
-ff5733      ❌ (no #)
-```
-
-### **Date (DD.MM.YYYY):**
-
-```
-r2'.'r2'.'r4
-
-29.10.2025      ✅
-9.10.2025       ❌ (missing zero)
-29-10-2025      ❌ (wrong separator)
-```
-
-### **HTML Block:**
-
-```
-b('<div>', '</div>'):a
-
-<div>content</div>              ✅
-<div><div>nested</div></div>    ✅ (greedy: entire block)
-```
-
-### **HTML Block (First Inner):**
-
-```
-b('<div>', '</div>(1)'):a
-
-<div><span>test</span></div>    ✅ (stops at first </div>)
-<div><div>a</div><div>b</div>   ✅ (stops at first: "a")
-```
-
-### **URL Protocol:**
-
-```
-(http|https)'://'a
-
-http://example.com      ✅
-https://secure.com      ✅
-ftp://files.com         ❌
-```
-
----
-
-## 🛠️ **IMPLEMENTATION NOTES**
-
-### **Parser Architecture:**
-
-```
-Input Pattern
-     ↓
-[Lexer] → Tokens
-     ↓
-[Parser] → AST
-     ↓
-[Matcher] → Results
-```
-
-### **Current Status:**
-
-| Feature | Status | Notes |
-|---------|--------|-------|
-| Lexer | ✅ Complete | Tokenization working |
-| Parser | ✅ Complete | AST generation working |
-| Matcher (Basic) | ✅ Complete | Char classes, literals, alternation |
-| Matcher (Scope) | 🟡 Partial | Word scope working |
-| Matcher (Block) | 🟡 Enhanced | Occurrence selector added ⭐ |
-| Lookahead/behind | ⏳ Planned | Design complete |
-| Parameters | ⏳ Planned | Syntax defined |
-| Negation | ⏳ Planned | Syntax defined |
-| Special Formats | ⏳ Planned | Binary, hex, ascii |
-
-### **Performance:**
-
-- ✅ O(n) time complexity (linear)
-- ✅ No backtracking (deterministic)
-- ✅ No ReDoS vulnerability
-- ✅ Predictable behavior
-
-### **Security:**
-
-- ✅ No infinite loops
-- ✅ No catastrophic backtracking
-- ✅ Input validation
-- ✅ Safe for user input
-
----
-
-## 📝 **CHANGELOG**
-
-### **v3.0 (2025-10-29)**
-
-**Added:**
-- ⭐ Block selector with occurrence counter: `b(start, end(n))`
-- ✅ Basic character classes (l, L, r, h, v, s, x, ?, a, b)
-- ✅ Quantifiers with ranges: `l(2-4)`
-- ✅ Literals: `'text'`
-- ✅ Alternation: `(a|b)`
-- ✅ Scope: `w:`, `l:`, `d:`
-- ✅ Sequence: `l3r2`
-
-**Changed:**
-- Block selector now supports occurrence counting
-- Improved greedy matching in alternations
-
-**Planned:**
-- Lookahead/lookbehind
-- Parameters
-- Negation
-- Special formats (bin, hex, asc)
-- Unicode support
-
----
-
-## 🤝 **CONTRIBUTING**
-
-This is a living document. Suggestions welcome!
-
-**Format for suggestions:**
-
-```
-## Suggestion: [Feature Name]
-
-**Syntax:**
-[proposed syntax]
-
-**Use Case:**
-[why this is useful]
+When multiple alternatives match, HPL chooses the longest match.
 
 **Example:**
-[code example]
+```
+Pattern: (cat|catch)
+Text: "catch"
+Result: Matches "catch" (not "cat")
 ```
 
 ---
 
-## 📄 **LICENSE**
+## Anchors
 
-MLP HPL v3 - Multi-Language Programming Human Pattern Language  
-© 2025 TYD Project
+Anchors specify where in the text a pattern must match.
+
+### Start Anchor: `<<pattern`
+
+Pattern must match at the very beginning of the text.
+
+**Examples:**
+```
+<<l3           → "abc" in "abcxyz" ✓ | "xabc" ✗
+<<'hello'      → "hello world" ✓ | "say hello" ✗
+<<L3r2         → "AB123" ✓ | "xAB123" ✗
+```
+
+### End Anchor: `pattern>>`
+
+Pattern must match at the very end of the text.
+
+**Examples:**
+```
+r2>>           → "abc12" ✓ | "12abc" ✗
+'world'>>      → "hello world" ✓ | "world hello" ✗
+l3r2>>         → "xabc12" ✓ | "abc12x" ✗
+```
+
+### Full Match: `<<pattern>>`
+
+Pattern must match the entire text (both start and end).
+
+**Examples:**
+```
+<<l3r2>>       → "abc12" ✓ | "xabc12" ✗ | "abc12x" ✗
+<<'exact'>>    → "exact" ✓ | "exactly" ✗
+<<h5>>         → "hello" ✓ | "hello!" ✗
+```
+
+### Middle Anchor: `>>pattern<<`
+
+Pattern must match in the middle (NOT at start or end).
+
+**Examples:**
+```
+>>l3<<         → "xabcy" ✓ | "abc" ✗ | "abcx" ✗ | "xabc" ✗
+>>'test'<<     → "xtesty" ✓ | "test" ✗
+>>r2<<         → "a12b" ✓ | "12ab" ✗ | "ab12" ✗
+```
+
+### Anchor Combinations
+
+```
+<<l3           → Must start with 3 lowercase
+r2>>           → Must end with 2 digits
+<<l3r2>>       → Must be exactly 3 lowercase + 2 digits
+>>l3<<         → Must have 3 lowercase in middle (not at edges)
+```
 
 ---
 
-**Last Updated:** 2025-10-29  
-**Document Version:** 1.0  
-**Status:** 🟡 In Development
+## Scope Modifiers
+
+Scope modifiers limit pattern matching to specific boundaries.
+
+### Word Scope: `w:pattern`
+
+Match pattern within a word boundary (no whitespace crossing).
+
+**Examples:**
+```
+w:l3           → "abc" in "abc def" ✓ | "ab cde" ✗
+w:'test'       → "test" as a word | "testing" ✓
+```
+
+### Line Scope: `l:pattern`
+
+Match pattern within a single line (no newline crossing).
+
+**Examples:**
+```
+l:l5           → 5 letters on same line
+l:'hello'      → "hello" within a line
+```
+
+### Document Scope: `d:pattern`
+
+Match pattern across entire document (default behavior).
+
+**Examples:**
+```
+d:l(10-100)    → 10-100 letters anywhere in document
+d:'keyword'    → "keyword" anywhere
+```
+
+### Block Scope: `b:pattern`
+
+Match pattern within a logical block (paragraph, section, etc.).
+
+**Examples:**
+```
+b:l(20-50)     → 20-50 letters within a block
+b:'section'    → "section" within a block
+```
+
+---
+
+## Pattern Examples
+
+### Common Patterns
+
+#### Usernames
+```
+l(3-16)                 → 3 to 16 lowercase letters
+l(1-10)r(0-3)           → Letters + optional digits
+(a-z,0-9)(5-15)         → Alphanumeric, 5-15 chars
+```
+
+#### Email Addresses
+```
+l(3-20)'@'l(3-10)'.com'              → Simple email
+(a-z,0-9)(3-20)'@'(a-z)(3-10)'.com'  → Alphanumeric email
+```
+
+#### Phone Numbers
+```
+r3'-'r3'-'r4            → 123-456-7890
+'('r3')'r3'-'r4         → (123)456-7890
+'+1'r10                 → +11234567890
+```
+
+#### Passwords
+```
+l(8-20)                           → 8-20 lowercase (weak)
+(a-z,A-Z,0-9)(8-20)               → Alphanumeric, 8-20 chars
+(a-z,A-Z,0-9)(8-20)x              → With at least 1 symbol
+h(6-12)r(1-3)x                    → Letters + digits + symbol
+```
+
+#### Dates
+```
+r2'/'r2'/'r4            → 01/23/2025 (MM/DD/YYYY)
+r4'-'r2'-'r2            → 2025-01-23 (YYYY-MM-DD)
+r2'.'r2'.'r4            → 23.01.2025 (DD.MM.YYYY)
+```
+
+#### URLs
+```
+'http'('s'|)'://'a           → http:// or https:// + anything
+'www.'l(3-20)'.com'          → www.example.com
+```
+
+#### Postal Codes
+```
+r5                      → US ZIP (12345)
+r5'-'r4                 → US ZIP+4 (12345-6789)
+l2r(2-3)                → Turkish postal (AB123)
+(A-Z)r(A-Z)r(A-Z)r      → Canadian (A1B2C3)
+```
+
+#### Credit Cards
+```
+r4'-'r4'-'r4'-'r4       → 1234-5678-9012-3456
+r16                     → 1234567890123456
+```
+
+#### IP Addresses
+```
+r(1-3)'.'r(1-3)'.'r(1-3)'.'r(1-3)   → IPv4
+```
+
+#### Hexadecimal
+```
+(0-9,a-f)6              → RGB color (#ff5733)
+'0x'(0-9,a-f)(1-8)      → Hex number (0x1A2B)
+```
+
+#### File Extensions
+```
+l(3-20)'.'(jpg|png|gif)           → image.jpg
+l(1-50)'.txt'                     → filename.txt
+l(1-50)'.'(doc|docx|pdf)          → document files
+```
+
+---
+
+## Implementation Details
+
+### Architecture
+
+The HPL implementation consists of three main components:
+
+#### 1. Lexer (Tokenizer)
+
+**File:** `lexer.js`
+
+Converts pattern string into tokens. Handles:
+- Character class recognition
+- Number parsing (context-aware for ranges)
+- Quoted literal strings
+- Implicit bare-text literals
+- Parenthesis depth tracking
+- Anchor detection
+
+**Key Functions:**
+- `tokenize(pattern)` → Returns array of tokens
+
+#### 2. Parser
+
+**File:** `parser.js`
+
+Builds Abstract Syntax Tree (AST) from tokens. Handles:
+- Sequence parsing
+- Alternation groups
+- Character ranges
+- Quantifier parsing
+- Anchor detection
+- Scope modifiers
+
+**Key Functions:**
+- `parse(tokens)` → Returns AST
+
+**AST Node Types:**
+- `SEQUENCE` - Multiple elements in order
+- `CHAR_CLASS` - Character class with quantifier
+- `LITERAL` - Exact text string
+- `ALTERNATION` - Multiple alternatives
+- `CHAR_RANGE` - Character range with quantifier
+- `ANCHOR` - Anchored pattern
+- `SCOPE` - Scoped pattern
+
+#### 3. Matcher
+
+**File:** `matcher.js`
+
+Matches AST against input text. Handles:
+- Position-based matching
+- Greedy quantifier matching
+- Anchor validation
+- Unicode character support
+- Range checking
+
+**Key Functions:**
+- `match(ast, text)` → Returns array of matches
+
+**Match Algorithm:**
+- Try matching at each position in text
+- For anchored patterns, constrain search positions
+- Greedy matching (longest match first)
+- Return all non-overlapping matches
+
+### Character Class Regex Mapping
+
+```javascript
+lowercase:  /[a-zçğıöşü]/
+uppercase:  /[A-ZÇĞİÖŞÜ]/
+digit:      /[0-9]/
+letter:     /[a-zA-ZçğıöşüÇĞİÖŞÜ]/
+vowel:      /[aeiouöüAEIOUÖÜ]/
+consonant:  /[bcdfghjklmnpqrstvwxyzçğşBCDFGHJKLMNPQRSTVWXYZÇĞŞ]/
+symbol:     /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/
+wildcard:   /./
+```
+
+### Quantifier Processing
+
+```javascript
+exact:     { exact: N }              // l3
+range:     { min: N, max: M }        // l(2-4)
+greater:   { min: N+1, max: ∞ }      // l(>3)
+less:      { min: 0, max: N-1 }      // l(<5)
+default:   { exact: 1 }              // l
+```
+
+---
+
+## Best Practices
+
+### Pattern Design
+
+1. **Start Simple**
+   ```
+   ✓ l3r2              (simple and clear)
+   ✗ l(3-3)r(2-2)      (unnecessarily complex)
+   ```
+
+2. **Use Appropriate Classes**
+   ```
+   ✓ h5                (any 5 letters)
+   ✗ (a-z,A-Z)5        (unnecessarily verbose)
+   ```
+
+3. **Be Specific with Anchors**
+   ```
+   ✓ <<l3r2>>          (exact match)
+   ✗ l3r2              (matches substring)
+   ```
+
+4. **Choose Readable Alternatives**
+   ```
+   ✓ (yes|no)          (clear options)
+   ✗ (y|n)('es'|'o')   (confusing)
+   ```
+
+### Performance Tips
+
+1. **Avoid Unlimited in Large Texts**
+   ```
+   ⚠ 'start'a'end'     (can be slow on large texts)
+   ✓ 'start'?(1-100)'end'  (bounded wildcard)
+   ```
+
+2. **Use Anchors When Possible**
+   ```
+   ✓ <<pattern         (only tries position 0)
+   ⚠ pattern           (tries every position)
+   ```
+
+3. **Be Specific with Quantifiers**
+   ```
+   ✓ l(5-10)           (bounded range)
+   ⚠ l(>0)             (unlimited upper bound)
+   ```
+
+### Common Mistakes
+
+1. **Forgetting Quotes for Literals**
+   ```
+   ✗ hello             (interpreted as h + e + l + l + o classes)
+   ✓ 'hello'           (correct literal)
+   ```
+
+2. **Wrong Anchor Order**
+   ```
+   ✗ >>pattern         (end anchor at start??)
+   ✓ <<pattern>>       (start then end)
+   ✓ >>pattern<<       (middle anchor)
+   ```
+
+3. **Range Syntax Errors**
+   ```
+   ✗ (a~z)             (wrong separator)
+   ✓ (a-z)             (correct)
+   
+   ✗ (a-z,0-9          (missing closing paren)
+   ✓ (a-z,0-9)         (correct)
+   ```
+
+4. **Quantifier Placement**
+   ```
+   ✗ (2-4)l            (quantifier before class)
+   ✓ l(2-4)            (correct order)
+   ```
+
+---
+
+## Comparison with Regular Expressions
+
+### Side-by-Side Examples
+
+| Task | HPL v3 | Regular Expression |
+|------|--------|-------------------|
+| 3 lowercase | `l3` | `[a-z]{3}` |
+| 2-4 digits | `r(2-4)` | `\d{2,4}` |
+| Start with letter | `<<h` | `^[a-zA-Z]` |
+| End with digit | `r>>` | `\d$` |
+| Exact match | `<<l3r2>>` | `^[a-z]{3}\d{2}$` |
+| Email | `l(3-20)'@'l(3-10)'.com'` | `[a-z]{3,20}@[a-z]{3,10}\.com` |
+| Hex color | `(0-9,a-f)6` | `[0-9a-f]{6}` |
+| Yes or No | `(yes|no)` | `(?:yes|no)` |
+| Phone | `r3'-'r3'-'r4` | `\d{3}-\d{3}-\d{4}` |
+| Any 5 chars | `?5` | `.{5}` |
+| Username | `(a-z,0-9)(5-15)` | `[a-z0-9]{5,15}` |
+
+### Advantages of HPL
+
+1. **Readability**: `l3r2` vs `[a-z]{3}\d{2}`
+2. **No Escaping**: `'@'` vs `\@`
+3. **Clear Anchors**: `<<` vs `^`
+4. **Intuitive Ranges**: `(2-4)` vs `{2,4}`
+5. **Multilingual**: Built-in Turkish support
+6. **Consistent**: Same syntax across implementations
+
+### When to Use Regex vs HPL
+
+**Use HPL when:**
+- Pattern needs to be human-readable
+- Working with non-technical users
+- Patterns are simple to moderate complexity
+- Multilingual text support needed
+- Pattern will be maintained by others
+
+**Use Regex when:**
+- Extremely complex patterns (lookaheads, backreferences)
+- Performance is absolutely critical
+- Integration with existing regex-based systems
+- Advanced features like lazy quantifiers needed
+
+---
+
+## Advanced Topics
+
+### Pattern Composition
+
+Build complex patterns from simpler ones:
+
+```javascript
+// Define reusable components
+const EMAIL_LOCAL = "l(3-20)";
+const EMAIL_DOMAIN = "l(3-10)";
+const EMAIL_TLD = "('com'|'org'|'net')";
+
+// Compose full pattern
+const EMAIL_PATTERN = `${EMAIL_LOCAL}'@'${EMAIL_DOMAIN}'.'${EMAIL_TLD}`;
+// Result: l(3-20)'@'l(3-10)'.('com'|'org'|'net')
+```
+
+### Validation Patterns
+
+```javascript
+// Strong password: 8+ chars, letter + digit + symbol
+h(7-20)r(1-5)x
+
+// URL with optional subdomain
+('www.'|)l(3-20)'.'('com'|'org')
+
+// Credit card (Visa: starts with 4)
+'4'r15
+
+// SSN format
+r3'-'r2'-'r4
+```
+
+### Extraction Patterns
+
+```javascript
+// Extract date components
+Pattern: r4'-'r2'-'r2
+Text: "Date: 2025-01-23"
+Extract: year=2025, month=01, day=23
+
+// Extract username from email
+Pattern: l(3-20)'@'
+Text: "user@example.com"
+Extract: username=user
+```
+
+---
+
+## Troubleshooting
+
+### Pattern Not Matching
+
+**Problem:** Pattern doesn't match expected text
+
+**Solutions:**
+1. Check quantifiers (exact vs range)
+2. Verify anchor placement
+3. Test character classes (l vs h vs (a-z))
+4. Validate literal quoting
+5. Check for typos in alternation
+
+### Unexpected Matches
+
+**Problem:** Pattern matches more than expected
+
+**Solutions:**
+1. Add anchors (`<<` or `>>`)
+2. Make quantifiers more specific
+3. Use word scope (`w:`)
+4. Replace `a` (unlimited) with bounded quantifier
+
+### Performance Issues
+
+**Problem:** Pattern matching is slow
+
+**Solutions:**
+1. Add start anchor `<<` if possible
+2. Reduce use of unlimited `a`
+3. Use more specific character classes
+4. Bound quantifiers (`l(1-50)` instead of `l(>0)`)
+
+---
+
+## Future Enhancements (Roadmap)
+
+### Planned Features
+
+1. **Lazy Quantifiers**: `l3?` (non-greedy)
+2. **Backreferences**: Capture and reuse matched text
+3. **Lookahead/Lookbehind**: Context-sensitive matching
+4. **Named Groups**: `(name:pattern)` for extraction
+5. **Unicode Categories**: `\p{Letter}` style classes
+6. **Custom Classes**: User-defined character sets
+7. **Inline Modifiers**: Case-insensitive flags
+8. **Pattern Variables**: Named pattern components
+
+---
+
+## Contributing
+
+### Reporting Issues
+
+When reporting bugs, include:
+1. Pattern used
+2. Input text
+3. Expected result
+4. Actual result
+5. Browser/environment
+
+### Suggesting Features
+
+Feature requests should include:
+1. Use case description
+2. Proposed syntax
+3. Example patterns
+4. Comparison with alternatives
+
+---
+
+## License & Credits
+
+**License:** MIT License
+
+**Contributors:**
+- HPL Language Design Team
+- Community Contributors
+
+**Acknowledgments:**
+- Inspired by human-readable pattern languages
+- Built for multilingual text processing
+- Designed for developer productivity
+
+---
+
+## Appendix
+
+### Complete Grammar (EBNF)
+
+```ebnf
+pattern     ::= anchor? sequence anchor?
+anchor      ::= '<<' | '>>' | '>>...<<'
+sequence    ::= element+
+element     ::= scope | alternation | charclass | literal | range
+scope       ::= ('w' | 'l' | 'd' | 'b') ':' element
+alternation ::= '(' alternative ('|' alternative)+ ')'
+alternative ::= element+
+charclass   ::= ('l'|'L'|'r'|'h'|'v'|'s'|'x'|'?'|'a'|'b') quantifier?
+range       ::= '(' rangeitem (',' rangeitem)* ')' quantifier?
+rangeitem   ::= char '-' char
+literal     ::= "'" text "'" | baretext
+quantifier  ::= number | '(' number '-' number ')' | '(' '>' number ')' | '(' '<' number ')'
+```
+
+### ASCII Quick Reference
+
+```
+Character Classes:
+l = lowercase    L = UPPERCASE    r = digit       h = letter
+v = vowel        s = consonant    x = symbol      ? = wildcard
+a = unlimited    b = single
+
+Quantifiers:
+N              = exactly N
+(N-M)          = between N and M
+(>N)           = more than N
+(<N)           = less than N
+
+Anchors:
+<<             = start of text
+>>             = end of text
+<<...>>        = exact match (full text)
+>>...<<        = middle (not at edges)
+
+Grouping:
+(...)          = alternation group
+(X-Y)          = character range
+'...'          = literal text
+X|Y            = alternation (X or Y)
+
+Scopes:
+w:             = word scope
+l:             = line scope
+d:             = document scope
+b:             = block scope
+```
+
+### Testing Checklist
+
+When testing HPL patterns:
+
+- [ ] Simple character class (l, r, etc.)
+- [ ] Quantifiers (exact, range, >, <)
+- [ ] Character ranges (a-z, 0-9)
+- [ ] Literals (quoted and bare)
+- [ ] Alternation (|)
+- [ ] Start anchor (<<)
+- [ ] End anchor (>>)
+- [ ] Full match (<<...>>)
+- [ ] Middle anchor (>>...<<)
+- [ ] Scopes (w:, l:, etc.)
+- [ ] Unicode/Turkish characters
+- [ ] Edge cases (empty, single char)
+
+---
+
+## Quick Start Guide
+
+### Installation
+
+```html
+<!-- Include HPL scripts -->
+<script src="lexer.js"></script>
+<script src="parser.js"></script>
+<script src="matcher.js"></script>
+```
+
+### Basic Usage
+
+```javascript
+// 1. Define pattern
+const pattern = "l3r2";
+
+// 2. Tokenize
+const tokens = tokenize(pattern);
+
+// 3. Parse
+const ast = parse(tokens);
+
+// 4. Match against text
+const text = "abc12";
+const matches = match(ast, text);
+
+// 5. Process results
+console.log(matches);
+// Output: [{ match: "abc12", start: 0, end: 5 }]
+```
+
+### First Patterns
+
+```javascript
+// Email validation
+"l(3-20)'@'l(3-10)'.com'"
+
+// Phone number
+"r3'-'r3'-'r4"
+
+// Simple password
+"h(8-20)"
+
+// Date format
+"r2'/'r2'/'r4"
+```
+
+---
+
+## Glossary
+
+**Alternation**: Matching one of several alternatives using `|`
+
+**Anchor**: Position constraint (start, end, or middle)
+
+**AST**: Abstract Syntax Tree - internal representation of pattern
+
+**Character Class**: Type of character to match (l, r, h, etc.)
+
+**Greedy**: Matching as much as possible (default behavior)
+
+**HPL**: Human Pattern Language - this language
+
+**Lexer**: Component that breaks pattern into tokens
+
+**Literal**: Exact text string to match
+
+**Matcher**: Component that performs the actual matching
+
+**Parser**: Component that builds AST from tokens
+
+**Quantifier**: Specifies how many times to match
+
+**Range**: Set of characters defined by start-end
+
+**Scope**: Boundary within which to match
+
+**Token**: Smallest unit of pattern syntax
+
+---
+
+**End of Documentation**
+
+For more information, visit: [HPL Documentation](https://github.com/mlp-hpl)  
+Version: 3.0 | Last Updated: 2025-10-30

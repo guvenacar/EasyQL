@@ -91,8 +91,11 @@ class Parser {
     parseSequence() {
         const elements = [];
         
+        // ✅ FIX: Stop when we hit anchors (>>, <<) or closing paren
         while (this.peek().type !== TokenType.EOF && 
-               this.peek().type !== TokenType.RPAREN) {
+               this.peek().type !== TokenType.RPAREN &&
+               this.peek().type !== TokenType.END_ANCHOR &&
+               this.peek().type !== TokenType.START_ANCHOR) {
             elements.push(this.parseElement());
         }
         

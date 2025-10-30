@@ -1,0 +1,658 @@
+# 🚀 MLP HPL v3 - Reference Document
+
+**MLP** = Multi-Language Programming  
+**HPL** = Human Pattern Language  
+**Version:** 3.0 (Development)
+
+**Date:** 2025-10-29  
+**Status:** 🟡 In Development
+
+---
+
+## 📋 **TABLE OF CONTENTS**
+
+1. [Core Philosophy](#core-philosophy)
+2. [Character Classes](#character-classes)
+3. [Quantifiers](#quantifiers)
+4. [Literals](#literals)
+5. [Alternation](#alternation)
+6. [Scope](#scope)
+7. [Block Selector](#block-selector)
+8. [Positional](#positional)
+9. [Lookahead/Lookbehind](#lookaheadlookbehind)
+10. [Parameters](#parameters)
+11. [Negation](#negation)
+12. [Special Formats](#special-formats)
+13. [Escape Characters](#escape-characters)
+14. [Examples](#examples)
+15. [Implementation Notes](#implementation-notes)
+
+---
+
+## 🎯 **CORE PHILOSOPHY**
+
+### **Design Principles:**
+
+1. ✅ **Human-Readable** - Patterns should be readable like natural language
+2. ✅ **No Backtracking** - Deterministic matching (fast & safe)
+3. ✅ **Multi-Language** - Support for language-specific patterns (Turkish: sesli/sessiz)
+4. ✅ **Predictable** - Same pattern = same result (always)
+5. ✅ **Safe** - No ReDoS vulnerability
+
+### **vs Classic Regex:**
+
+| Feature | Classic Regex | MLP HPL v3 |
+|---------|--------------|------------|
+| Syntax | `[a-z]{3}\d{2}` | `l3r2` |
+| Readability | ⭐⭐ | ⭐⭐⭐⭐⭐ |
+| Performance | ⭐⭐ (backtracking) | ⭐⭐⭐⭐⭐ (deterministic) |
+| Security | ❌ ReDoS risk | ✅ Safe |
+| Learning Curve | 🔴 Hard | 🟢 Easy |
+
+---
+
+## 🔤 **CHARACTER CLASSES**
+
+### **Basic Classes:**
+
+| Symbol | Name | Description | Example |
+|--------|------|-------------|---------|
+| `l` | lowercase | Küçük harf (a-z, çğıöşü) | `l3` = 3 küçük harf |
+| `L` | uppercase | Büyük harf (A-Z, ÇĞİÖŞÜ) | `L2` = 2 büyük harf |
+| `r` | digit | Rakam (0-9) | `r4` = 4 rakam |
+| `h` | letter | Harf (büyük/küçük) | `h5` = 5 harf |
+| `v` | vowel | Sesli harf (a,e,i,o,u,ö,ü) | `v2` = 2 sesli |
+| `s` | consonant | Sessiz harf | `s3` = 3 sessiz |
+| `x` | symbol | Sembol (!@#$%^&*) | `x1` = 1 sembol |
+| `?` | wildcard | Herhangi bir karakter | `?3` = 3 herhangi |
+| `a` | unlimited | Sınırsız (any length) | `a` = tümü |
+| `b` | single | Tek karakter | `b` = 1 karakter |
+
+### **Examples:**
+
+```
+l3      → "abc"     ✅
+L2      → "AB"      ✅
+r4      → "1234"    ✅
+h6      → "AbCdEf"  ✅
+v2s2    → "abcd"    ✅ (a=sesli, b=sessiz, c=sessiz, d=sessiz... HATA!)
+vsv     → "aba"     ✅ (a=sesli, b=sessiz, a=sesli)
+```
+
+---
+
+## 🔢 **QUANTIFIERS**
+
+### **Syntax:**
+
+| Format | Description | Example |
+|--------|-------------|---------|
+| `l3` | Exactly 3 | `l3` = tam 3 küçük harf |
+| `l(2-4)` | Range (2 to 4) | `l(2-4)` = 2-4 arası |
+| `l(>3)` | Min 3 | `l(>3)` = en az 3 |
+| `l(<5)` | Max 5 | `l(<5)` = en fazla 5 |
+| `a` | Unlimited | `a` = sınırsız |
+
+### **Greedy vs Lazy:**
+
+**Default: Greedy** (en uzununu al)
+
+```
+l(2-4)  + "abcde"  →  "abcd" (4 karakter alır)
+```
+
+**Lazy mode:** Scope ile kontrol edilir
+
+```
+w:l(2-4)  →  word scope (kelime sınırında dur)
+```
+
+### **Examples:**
+
+```
+l(2-4)      → "abc"     ✅ (3 karakter)
+l(2-4)      → "ab"      ✅ (2 karakter, minimum)
+l(2-4)      → "abcde"   ✅ "abcd" (4 karakter, maksimum)
+r(3-6)      → "12345"   ✅ (5 rakam)
+```
+
+---
+
+## 📝 **LITERALS**
+
+### **Syntax:**
+
+```
+'text'      → Exact text
+"text"      → NOT SUPPORTED (use single quotes)
+```
+
+### **Behavior:**
+
+```
+'hello'     → Exact "hello" (başka şey yok)
+a'hello'    → Ends with "hello"
+'hello'a    → Starts with "hello"
+a'hello'a   → Contains "hello"
+```
+
+### **Escaping:**
+
+```
+'it\'s'     → Literal "it's" (escape single quote)
+'"test"'    → Literal "test" with double quotes
+```
+
+### **Examples:**
+
+```
+'hello'             → "hello"        ✅
+'hello'             → "Hello"        ❌ (case-sensitive)
+'test'r2            → "test99"       ✅
+l3'@'l3             → "abc@xyz"      ✅
+a'end'              → "start...end"  ✅
+```
+
+---
+
+## 🔀 **ALTERNATION**
+
+### **Syntax:**
+
+```
+(option1|option2|option3)
+```
+
+### **Longest Match:**
+
+Always matches the longest option first (no backtracking)
+
+```
+(cat|catch)  +  "catch"  →  "catch" (not "cat")
+```
+
+### **Optional:**
+
+```
+(x|)    → x is optional (empty alternative)
+```
+
+### **Examples:**
+
+```
+(cat|dog)           → "cat"     ✅
+(cat|dog)           → "dog"     ✅
+l3(r|v)             → "abc1"    ✅ (1=rakam)
+l3(r|v)             → "abca"    ✅ (a=sesli)
+(com|net|org)       → "com"     ✅
+(test|testing)      → "testing" ✅ (longest)
+```
+
+---
+
+## 🎯 **SCOPE**
+
+### **Syntax:**
+
+```
+w:pattern   → Word scope
+l:pattern   → Line scope
+d:pattern   → Document scope
+b:pattern   → Block scope (custom)
+```
+
+### **Word Scope (w:):**
+
+Matches within word boundaries
+
+```
+w:l3r2  +  "hello abc12 world"  →  "abc12"
+```
+
+### **Line Scope (l:):**
+
+Matches within line boundaries (stops at \n)
+
+```
+l:a'end'  +  "start end\nnext"  →  "start end"
+```
+
+### **Document Scope (d:):**
+
+Matches entire document
+
+```
+d:a'end'  +  "start\nmiddle\nend"  →  entire text
+```
+
+### **Examples:**
+
+```
+w:'test'        → Exact word "test"
+l:a'end'        → Line ending with "end"
+d:a'keyword'a   → Document containing "keyword"
+```
+
+---
+
+## 🧱 **BLOCK SELECTOR** ⭐ NEW!
+
+### **Syntax:**
+
+```
+b(start, end):pattern
+b(start, end(n)):pattern    → Select nth occurrence
+```
+
+### **Basic Usage:**
+
+```
+b('<div>', '</div>'):a
+```
+
+Selects content between `<div>` and `</div>`
+
+### **⭐ NEW: Occurrence Selector**
+
+```
+b('<div>', '</div>(3)'):a
+```
+
+**Behavior:**
+- Starts at `<div>`
+- Stops at the **3rd** occurrence of `</div>`
+- Useful for nested blocks!
+
+### **Examples:**
+
+```html
+<!-- HTML: -->
+<div>
+    <div>inner1</div>
+    <div>inner2</div>
+    <div>inner3</div>
+</div>
+
+<!-- Pattern: -->
+b('<div>', '</div>(1)'):a
+→ Selects: <div> ... </div>  (first closing tag only: "inner1")
+
+b('<div>', '</div>(3)'):a
+→ Selects: <div> ... </div>  (third closing tag: includes inner1, inner2, inner3)
+
+b('<div>', '</div>'):a
+→ Selects: entire block (default: greedy, last closing tag)
+```
+
+### **Use Cases:**
+
+```
+<!-- XML/HTML parsing -->
+b('<article>', '</article>'):a
+b('<p>', '</p>(1)'):a          → First paragraph only
+
+<!-- Code blocks -->
+b('function', 'end'):a
+b('{', '}(1)'):a               → First block only
+
+<!-- Nested structures -->
+b('(', ')(2)'):a               → Up to 2nd closing paren
+```
+
+### **Implementation Notes:**
+
+- Default (no number): Greedy, match to last occurrence
+- `(n)`: Match to nth occurrence
+- Counter resets for each new start tag
+- Useful for nested/recursive structures
+
+---
+
+## 📍 **POSITIONAL**
+
+### **Syntax:**
+
+```
+<<pattern   → Start of scope
+pattern>>   → End of scope
+><pattern   → Middle of scope
+```
+
+### **Examples:**
+
+```
+<<l3        → Starts with 3 lowercase
+r2>>        → Ends with 2 digits
+><'test'    → Contains "test" (not at edges)
+```
+
+### **With Scope:**
+
+```
+w:<<L       → Word starts with uppercase
+l:r2>>      → Line ends with 2 digits
+```
+
+---
+
+## 👀 **LOOKAHEAD/LOOKBEHIND**
+
+### **Syntax:**
+
+```
+@>pattern   → Lookahead (next is pattern)
+@<pattern   → Lookbehind (previous is pattern)
+!@>pattern  → Negative lookahead
+!@<pattern  → Negative lookbehind
+```
+
+### **Behavior:**
+
+**Lookahead/lookbehind does NOT consume characters!**
+
+```
+l3@>r       → 3 lowercase + next is digit (digit NOT captured)
+```
+
+### **Examples:**
+
+```
+l3@>r               → "abc1"  →  Matches "abc" (1 not included)
+r@<l3               → "abc1"  →  Matches "1" (abc not included)
+'test'!@>r          → "testx" →  Matches "test" (next NOT digit)
+l3@>r2              → "abc12" →  Matches "abc"
+```
+
+### **Use Cases:**
+
+```
+<!-- Password validation: must have digit after letters -->
+l(5-10)@>r
+
+<!-- Email: ensure @ follows -->
+l(3-10)@>'@'
+
+<!-- Avoid certain patterns -->
+'keyword'!@>'bad'
+```
+
+---
+
+## 🏷️ **PARAMETERS**
+
+### **Syntax:**
+
+```
+[name]          → Define parameter
+[name=default]  → With default value
+[1], [2]        → Reference by index
+```
+
+### **Usage:**
+
+```
+[domain]'.'(com|net|org)
+```
+
+### **Examples:**
+
+```
+[user]'@'[domain]'.com'
+→ Captures: user and domain
+
+'http'[1]'.com'
+→ Reference first capture
+```
+
+### **Status:** ⏳ Not implemented yet
+
+---
+
+## ⛔ **NEGATION**
+
+### **Syntax:**
+
+```
+(-pattern)      → NOT pattern
+(-'text')       → NOT exact text
+```
+
+### **Examples:**
+
+```
+(-'cat')a       → Any text except "cat"
+(-r)3           → 3 non-digits
+```
+
+### **Status:** ⏳ Not implemented yet
+
+---
+
+## 🔧 **SPECIAL FORMATS**
+
+### **Syntax:**
+
+```
+bin     → Binary (0,1)
+hex     → Hexadecimal (0-9,a-f,A-F)
+asc     → ASCII (0-127)
+```
+
+### **Examples:**
+
+```
+bin8        → "10110101" (8-bit binary)
+hex6        → "ff5733" (hex color)
+asc10       → ASCII text (10 chars)
+```
+
+### **Status:** ⏳ Not implemented yet
+
+---
+
+## 🔤 **ESCAPE CHARACTERS**
+
+### **Syntax:**
+
+```
+\n      → Newline
+\t      → Tab
+\r      → Carriage return
+\s      → Space
+```
+
+### **Examples:**
+
+```
+l3\nr2          → "abc\n12"
+'hello'\t'world' → "hello\tworld"
+```
+
+### **Status:** ⏳ Partially implemented
+
+---
+
+## 📚 **EXAMPLES**
+
+### **Email Validation:**
+
+```
+l(3-10)'@'l(3-10)'.'(com|net|org)
+
+test@example.com    ✅
+ab@ex.com           ❌ (too short)
+test@site.co.uk     ❌ (.uk not in list)
+```
+
+### **Phone Number (TR):**
+
+```
+'0'r10
+
+05551234567     ✅
+5551234567      ❌ (no leading 0)
+055512345       ❌ (too short)
+```
+
+### **Password Strength:**
+
+```
+L(1-2)l(5-8)r(2-3)
+
+Abcdefg123      ✅ (1 upper, 7 lower, 3 digits)
+abcdefg123      ❌ (no uppercase)
+ABC123          ❌ (not enough lowercase)
+```
+
+### **Hex Color:**
+
+```
+'#'h6
+
+#ff5733     ✅
+#FF5733     ✅
+#zz5733     ❌ (z not hex)
+ff5733      ❌ (no #)
+```
+
+### **Date (DD.MM.YYYY):**
+
+```
+r2'.'r2'.'r4
+
+29.10.2025      ✅
+9.10.2025       ❌ (missing zero)
+29-10-2025      ❌ (wrong separator)
+```
+
+### **HTML Block:**
+
+```
+b('<div>', '</div>'):a
+
+<div>content</div>              ✅
+<div><div>nested</div></div>    ✅ (greedy: entire block)
+```
+
+### **HTML Block (First Inner):**
+
+```
+b('<div>', '</div>(1)'):a
+
+<div><span>test</span></div>    ✅ (stops at first </div>)
+<div><div>a</div><div>b</div>   ✅ (stops at first: "a")
+```
+
+### **URL Protocol:**
+
+```
+(http|https)'://'a
+
+http://example.com      ✅
+https://secure.com      ✅
+ftp://files.com         ❌
+```
+
+---
+
+## 🛠️ **IMPLEMENTATION NOTES**
+
+### **Parser Architecture:**
+
+```
+Input Pattern
+     ↓
+[Lexer] → Tokens
+     ↓
+[Parser] → AST
+     ↓
+[Matcher] → Results
+```
+
+### **Current Status:**
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Lexer | ✅ Complete | Tokenization working |
+| Parser | ✅ Complete | AST generation working |
+| Matcher (Basic) | ✅ Complete | Char classes, literals, alternation |
+| Matcher (Scope) | 🟡 Partial | Word scope working |
+| Matcher (Block) | 🟡 Enhanced | Occurrence selector added ⭐ |
+| Lookahead/behind | ⏳ Planned | Design complete |
+| Parameters | ⏳ Planned | Syntax defined |
+| Negation | ⏳ Planned | Syntax defined |
+| Special Formats | ⏳ Planned | Binary, hex, ascii |
+
+### **Performance:**
+
+- ✅ O(n) time complexity (linear)
+- ✅ No backtracking (deterministic)
+- ✅ No ReDoS vulnerability
+- ✅ Predictable behavior
+
+### **Security:**
+
+- ✅ No infinite loops
+- ✅ No catastrophic backtracking
+- ✅ Input validation
+- ✅ Safe for user input
+
+---
+
+## 📝 **CHANGELOG**
+
+### **v3.0 (2025-10-29)**
+
+**Added:**
+- ⭐ Block selector with occurrence counter: `b(start, end(n))`
+- ✅ Basic character classes (l, L, r, h, v, s, x, ?, a, b)
+- ✅ Quantifiers with ranges: `l(2-4)`
+- ✅ Literals: `'text'`
+- ✅ Alternation: `(a|b)`
+- ✅ Scope: `w:`, `l:`, `d:`
+- ✅ Sequence: `l3r2`
+
+**Changed:**
+- Block selector now supports occurrence counting
+- Improved greedy matching in alternations
+
+**Planned:**
+- Lookahead/lookbehind
+- Parameters
+- Negation
+- Special formats (bin, hex, asc)
+- Unicode support
+
+---
+
+## 🤝 **CONTRIBUTING**
+
+This is a living document. Suggestions welcome!
+
+**Format for suggestions:**
+
+```
+## Suggestion: [Feature Name]
+
+**Syntax:**
+[proposed syntax]
+
+**Use Case:**
+[why this is useful]
+
+**Example:**
+[code example]
+```
+
+---
+
+## 📄 **LICENSE**
+
+MLP HPL v3 - Multi-Language Programming Human Pattern Language  
+© 2025 TYD Project
+
+---
+
+**Last Updated:** 2025-10-29  
+**Document Version:** 1.0  
+**Status:** 🟡 In Development

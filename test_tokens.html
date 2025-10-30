@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Token Debug</title>
+</head>
+<body>
+    <h1>Token Debug</h1>
+    <div id="output"></div>
+    
+    <script src="js/lexer.js"></script>
+    <script>
+        const patterns = ['(a-z)', '(0-9)', '(a-d,g-l)'];
+        const output = document.getElementById('output');
+        
+        patterns.forEach(pattern => {
+            try {
+                const tokens = tokenize(pattern);
+                output.innerHTML += `<h3>Pattern: ${pattern}</h3>`;
+                output.innerHTML += '<pre>' + JSON.stringify(tokens, null, 2) + '</pre>';
+            } catch (e) {
+                output.innerHTML += `<h3>Pattern: ${pattern}</h3>`;
+                output.innerHTML += `<pre style="color: red;">ERROR: ${e.message}\n${e.stack}</pre>`;
+            }
+        });
+    </script>
+</body>
+</html>

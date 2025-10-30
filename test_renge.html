@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>MLP HPL - Character Range Tests</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #ddd;
+        }
+        .pass {
+            border-left-color: #4caf50;
+        }
+        .fail {
+            border-left-color: #f44336;
+        }
+        .pattern {
+            color: #667eea;
+            font-weight: bold;
+        }
+        .text {
+            color: #764ba2;
+        }
+        h1 {
+            color: #333;
+        }
+        pre {
+            background: #f9f9f9;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>📐 MLP HPL v3 - Character Range Tests</h1>
+    <div id="results"></div>
+    
+    <script src="js/lexer.js"></script>
+    <script src="js/parser.js"></script>
+    <script src="js/matcher.js"></script>
+    
+    <script>
+        const tests = [
+            // Single range
+            { pattern: '(a-z)', text: 'a', expected: true, desc: 'Single char in range (a)' },
+            { pattern: '(a-z)', text: 'm', expected: true, desc: 'Single char in range (m)' },
+            { pattern: '(a-z)', text: 'z', expected: true, desc: 'Single char in range (z)' },
+            { pattern: '(a-z)', text: 'A', expected: false, desc: 'Uppercase not in range' },
+            { pattern: '(a-z)', text: '5', expected: false, desc: 'Digit not in range' },
+            
+            // Digit range
+            { pattern: '(0-9)', text: '0', expected: true, desc: 'Digit at start' },
+            { pattern: '(0-9)', text: '5', expected: true, desc: 'Digit in middle' },
+            { pattern: '(0-9)', text: '9', expected: true, desc: 'Digit at end' },
+            { pattern: '(0-9)', text: 'a', expected: false, desc: 'Letter not in digit range' },
+            
+            // With quantifiers
+            { pattern: '(a-z)3', text: 'abc', expected: true, desc: 'Exactly 3 lowercase' },
+            { pattern: '(a-z)3', text: 'xyz', expected: true, desc: 'Exactly 3 lowercase (xyz)' },
+            { pattern: '(a-z)3', text: 'ab', expected: false, desc: 'Only 2 chars (too few)' },
+            { pattern: '(0-9)4', text: '1234', expected: true, desc: 'Exactly 4 digits' },
+            
+            // Multiple ranges
+            { pattern: '(a-d,g-l)', text: 'a', expected: true, desc: 'In first range (a)' },
+            { pattern: '(a-d,g-l)', text: 'd', expected: true, desc: 'In first range (d)' },
+            { pattern: '(a-d,g-l)', text: 'g', expected: true, desc: 'In second range (g)' },
+            { pattern: '(a-d,g-l)', text: 'l', expected: true, desc: 'In second range (l)' },
+            { pattern: '(a-d,g-l)', text: 'e', expected: false, desc: 'Between ranges (e)' },
+            { pattern: '(a-d,g-l)', text: 'f', expected: false, desc: 'Between ranges (f)' },
+            { pattern: '(a-d,g-l)', text: 'm', expected: false, desc: 'After ranges (m)' },
+            
+            // Hex digits
+            { pattern: '(0-9,a-f)4', text: '1a2f', expected: true, desc: 'Hex digits' },
+            { pattern: '(0-9,a-f)4', text: 'abcd', expected: true, desc: 'Hex letters' },
+            { pattern: '(0-9,a-f)4', text: '0000', expected: true, desc: 'All zeros' },
+            { pattern: '(0-9,a-f)4', text: 'ffff', expected: true, desc: 'All f' },
+            { pattern: '(0-9,a-f)4', text: 'gg12', expected: false, desc: 'Invalid hex (g)' },
+            
+            // Range with range quantifier
+            { pattern: '(a-z)(2-4)', text: 'ab', expected: true, desc: 'Min (2)' },
+            { pattern: '(a-z)(2-4)', text: 'abc', expected: true, desc: 'Middle (3)' },
+            { pattern: '(a-z)(2-4)', text: 'abcd', expected: true, desc: 'Max (4)' },
+            { pattern: '(a-z)(2-4)', text: 'a', expected: false, desc: 'Too few (1)' },
+            
+            // Combined with literals
+            { pattern: '(a-z)3r2', text: 'abc12', expected: true, desc: '3 letters + 2 digits' },
+            { pattern: "'test'(0-9)2", text: 'test42', expected: true, desc: 'Literal + 2 digits' },
+            
+            // Edge cases
+            { pattern: '(a-a)', text: 'a', expected: true, desc: 'Single char range (a-a)' },
+            { pattern: '(0-0)', text: '0', expected: true, desc: 'Single digit range (0-0)' },
+            { pattern: '(z-a)', text: 'a', expected: false, desc: 'Reverse range (z-a) invalid' },
+        ];
+        
+        const resultsDiv = document.getElementById('results');
+        let passCount = 0;
+        let failCount = 0;
+        
+        tests.forEach((test, idx) => {
+            try {
+                const tokens = tokenize(test.pattern);
+                const ast = parse(tokens);
+                const matches = match(ast, test.text);
+                const hasMatch = matches.length > 0;
+                
+                const passed = hasMatch === test.expected;
+                if (passed) passCount++; else failCount++;
+                
+                const status = passed ? '✅' : '❌';
+                const className = passed ? 'pass' : 'fail';
+                
+                resultsDiv.innerHTML += `
+                    <div class="test ${className}">
+                        <div>${status} <strong>Test ${idx + 1}:</strong> ${test.desc}</div>
+                        <div>Pattern: <span class="pattern">${test.pattern}</span> | Text: <span class="text">"${test.text}"</span></div>
+                        <div>Expected: ${test.expected}, Got: ${hasMatch}</div>
+                        ${!passed ? `<pre>Matches: ${JSON.stringify(matches, null, 2)}</pre>` : ''}
+                        ${!passed ? `<pre>AST: ${JSON.stringify(ast, null, 2)}</pre>` : ''}
+                    </div>
+                `;
+            } catch (error) {
+                failCount++;
+                resultsDiv.innerHTML += `
+                    <div class="test fail">
+                        <div>❌ <strong>Test ${idx + 1}:</strong> ${test.desc}</div>
+                        <div>Pattern: <span class="pattern">${test.pattern}</span> | Text: <span class="text">"${test.text}"</span></div>
+                        <div style="color: red;">ERROR: ${error.message}</div>
+                        <pre>${error.stack}</pre>
+                    </div>
+                `;
+            }
+        });
+        
+        resultsDiv.innerHTML += `
+            <div style="margin-top: 20px; padding: 20px; background: white; border-radius: 5px;">
+                <h2>📊 Summary</h2>
+                <p style="color: #4caf50; font-size: 20px;">✅ Passed: ${passCount}</p>
+                <p style="color: #f44336; font-size: 20px;">❌ Failed: ${failCount}</p>
+                <p style="font-size: 20px;"><strong>Total: ${tests.length}</strong></p>
+            </div>
+        `;
+    </script>
+</body>
+</html>
